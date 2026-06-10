@@ -18,8 +18,10 @@ export interface RadiatorSpec {
   id: string;
   name: string;
   specific_mass_kg_per_kw: number; // kg per kW rejected
+  cost_usd_per_kw: number; // fabrication + integration cost per kW capacity
   operating_temp_k: number; // radiator surface temp
   emissivity: number; // 0-1
+  trl: number; // Technology Readiness Level 1-9
   notes: string;
 }
 
@@ -164,33 +166,41 @@ export const RADIATOR_SPECS: RadiatorSpec[] = [
     id: "graphite-composite",
     name: "Graphite Composite Panel (heritage)",
     specific_mass_kg_per_kw: 10,
+    cost_usd_per_kw: 50_000,
     operating_temp_k: 320,
     emissivity: 0.85,
-    notes: "Traditional carbon-fiber panel with heat pipes. ISS heritage.",
+    trl: 9,
+    notes: "Traditional carbon-fiber panel with heat pipes. ISS heritage. $50k/kW mostly labor/integration at custom small-lot scale.",
   },
   {
     id: "loop-heat-pipe-panel",
     name: "Loop Heat Pipe + Aluminum Panel (modern)",
     specific_mass_kg_per_kw: 5,
+    cost_usd_per_kw: 20_000,
     operating_temp_k: 340,
     emissivity: 0.9,
-    notes: "State of practice for commercial satellites ~2020s.",
+    trl: 9,
+    notes: "State of practice commercial satellites ~2020s. At production scale costs could fall to $5–10k/kW.",
   },
   {
     id: "advanced-hp-radiator",
     name: "Advanced Heat Pipe Radiator (near-term)",
     specific_mass_kg_per_kw: 3,
+    cost_usd_per_kw: 35_000,
     operating_temp_k: 360,
     emissivity: 0.92,
-    notes: "AFRL / NASA Artemis-era tech. Target for lunar Gateway.",
+    trl: 5,
+    notes: "AFRL / NASA Artemis-era. Higher performance = more cost today. TRL 5 — target for lunar Gateway.",
   },
   {
     id: "spray-phase-change",
     name: "Spray / Phase-Change Membrane Radiator (future)",
     specific_mass_kg_per_kw: 1.5,
+    cost_usd_per_kw: 80_000,
     operating_temp_k: 400,
     emissivity: 0.95,
-    notes: "Developmental. Liquid droplet or membrane evaporative radiators. Best projected specific mass.",
+    trl: 3,
+    notes: "Developmental. Liquid droplet or evaporative membrane. TRL 3 — high NRE cost, low production cost at scale.",
   },
 ];
 

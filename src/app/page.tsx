@@ -8,6 +8,10 @@ import EfficiencyComparison from "@/components/EfficiencyComparison";
 import CapexTimeline from "@/components/CapexTimeline";
 import StructureVisualizer from "@/components/StructureVisualizer";
 import RevenueProjection from "@/components/RevenueProjection";
+import EarthDCComparison from "@/components/EarthDCComparison";
+import RealDCExamples from "@/components/RealDCExamples";
+import SourcesList from "@/components/SourcesList";
+import Glossary from "@/components/Glossary";
 import {
   CURRENT_SPACE_HARDWARE,
   DATACENTER_HARDWARE,
@@ -89,6 +93,11 @@ export default function Home() {
   // Shielding
   const [shielding, setShielding] = useState<ShieldingLevel>("leo-cots");
 
+  // Earth DC comparison
+  const [earthLocationId, setEarthLocationId] = useState("us-avg");
+  const [tcoYears, setTcoYears] = useState(30);
+  const [solarAvailability, setSolarAvailability] = useState(0.6); // LEO default
+
   // Revenue / projection
   const [projectionYears, setProjectionYears] = useState(10);
   const [spacePremium, setSpacePremium] = useState(1.0);
@@ -149,6 +158,9 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-12">
+
+        {/* ── Glossary ── */}
+        <Glossary />
 
         {/* ── Hardware Selector ── */}
         <section>
@@ -405,6 +417,30 @@ export default function Home() {
               />
             </div>
 
+            {/* Solar Availability (Orbit) */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1 uppercase tracking-widest">
+                Solar Availability: {(solarAvailability * 100).toFixed(0)}% — orbit efficiency
+              </label>
+              <input
+                type="range" min={0.30} max={1.0} step={0.05} value={solarAvailability}
+                onChange={(e) => setSolarAvailability(Number(e.target.value))}
+                className="w-full accent-yellow-300"
+              />
+              <div className="flex gap-3 mt-2 flex-wrap">
+                {([["LEO 60%", 0.6], ["Dawn-dusk 85%", 0.85], ["GEO 99%", 0.99]] as [string, number][]).map(([label, val]) => (
+                  <button key={val} onClick={() => setSolarAvailability(val)}
+                    className={`text-xs px-2 py-1 rounded border ${Math.abs(solarAvailability - val) < 0.01 ? "border-yellow-400 text-yellow-300" : "border-gray-700 text-gray-400 hover:border-gray-500"}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Fraction of time solar panels generate power. Space panels ~37% more efficient (no atmosphere, 1.37 kW/m²).
+                Panels needed = TDP / availability. GEO reduces panel mass ~40% vs LEO.
+              </p>
+            </div>
+
           </div>
 
           {/* OPEX summary */}
@@ -426,24 +462,68 @@ export default function Home() {
               const chipCost = (CHIP_COSTS_USD[hw.id] ?? 30000) * chipCount;
               const totalCostM = (launchCost + chipCost) / 1e6;
               const tdpKw = (hw.tdp_w * chipCount) / 1000;
+              const { infra } = payload;
+              const chipPct = (infra.chips_kg / payload.total_mass_kg * 100).toFixed(0);
+              const radPct = (infra.radiator_panels_kg / payload.total_mass_kg * 100).toFixed(0);
+              const netPct = (infra.networking_switches_kg / payload.total_mass_kg * 100).toFixed(0);
               return (
                 <div key={hw.id} className="bg-gray-900 rounded-lg border border-gray-800 p-4 space-y-2">
                   <div className="text-xs text-gray-400 truncate">{hw.name}</div>
                   <div className="text-2xl font-bold text-white">{fmtCost(totalCostM)}</div>
                   <div className="text-xs text-gray-400">
-                    hardware + launch · {fmtCount(chipCount)} chips
+                    hardware + full infrastructure launch · {fmtCount(chipCount)} chips
                   </div>
                   <div className="border-t border-gray-800 pt-2 grid grid-cols-2 gap-1 text-xs">
                     <div><span className="text-gray-500">TDP: </span><span className="text-orange-300">{fmtPower(tdpKw)}</span></div>
-                    <div><span className="text-gray-500">Rad: </span><span className="text-red-300">{fmtArea(thermal.radiator_area_m2)}</span></div>
-                    <div><span className="text-gray-500">Mass: </span><span className="text-yellow-300">{fmtMass(payload.total_mass_kg)}</span></div>
+                    <div><span className="text-gray-500">Rad area: </span><span className="text-red-300">{fmtArea(thermal.radiator_area_m2)}</span></div>
+                    <div><span className="text-gray-500">Total mass: </span><span className="text-yellow-300">{fmtMass(payload.total_mass_kg)}</span></div>
                     <div><span className="text-gray-500">Launches: </span><span className="text-green-300">{payload.launches_needed(vehicle).toLocaleString()}×</span></div>
+                  </div>
+                  <div className="border-t border-gray-800 pt-2 text-xs text-gray-500">
+                    Mass split: chips {chipPct}% · rad {radPct}% · net {netPct}%
                   </div>
                 </div>
               );
             })}
           </section>
         )}
+
+        {/* ── Earth DC Comparison ── */}
+        <section>
+          <div className="flex items-center justify-between mb-3 gap-4 flex-wrap">
+            <div>
+              <h2 className="text-sm uppercase tracking-widest text-gray-400">
+                Space vs Earth Datacenter — TCO Comparison
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Full line-item: electricity, water, land, labor, construction vs launch cost.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">TCO window:</label>
+              <input type="number" min={1} max={50} value={tcoYears}
+                onChange={(e) => setTcoYears(Number(e.target.value))}
+                className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white" />
+              <span className="text-xs text-gray-500">years</span>
+            </div>
+          </div>
+          <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+            <EarthDCComparison
+              hardware={focusHw}
+              radiator={radiator}
+              vehicle={vehicle}
+              chipCount={chipCount}
+              chipCostUsd={CHIP_COSTS_USD[focusHw.id] ?? 30000}
+              maintenancePct={maintenancePctPerYear}
+              upgradePct={upgradePctPerYear}
+              insurancePct={insurancePctPerYear}
+              locationId={earthLocationId}
+              onLocationChange={setEarthLocationId}
+              tcoYears={tcoYears}
+              solarAvailability={solarAvailability}
+            />
+          </div>
+        </section>
 
         {/* ── Revenue Projections ── */}
         <section>
@@ -547,6 +627,7 @@ export default function Home() {
               radiator={radiator}
               chipCount={chipCount}
               shielding={shielding}
+              solarAvailability={solarAvailability}
             />
             <p className="text-xs text-gray-500 mt-2">
               Bounding box = compute cube + deployed radiator panels. Compute cube sized from chip volume at 60% packing efficiency.
@@ -624,7 +705,7 @@ export default function Home() {
               sub={radiator.name.split("(")[0].trim()} />
             <Ref label={`H100 ×${fmtCount(chipCount)} total mass`}
               value={fmtMass(calcPayload({ hardware: h100, radiator, chip_count: chipCount, structural_mass_multiplier: 1.4 }).total_mass_kg)}
-              sub="chips+rad+solar+structure" />
+              sub="chips+rad+solar+net+lasers+robots+structure" />
             <Ref label={`H100 ×${fmtCount(chipCount)} launches`}
               value={`${calcPayload({ hardware: h100, radiator, chip_count: chipCount, structural_mass_multiplier: 1.4 }).launches_needed(vehicle).toLocaleString()}×`}
               sub={vehicle.name} />
@@ -634,11 +715,28 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ── Real-world DC Examples ── */}
+        <section>
+          <h2 className="text-sm uppercase tracking-widest text-gray-400 mb-3">
+            Real-world Datacenters — Size, Cost, Employees & Revenue
+          </h2>
+          <RealDCExamples />
+        </section>
+
+        {/* ── Sources ── */}
+        <section>
+          <h2 className="text-sm uppercase tracking-widest text-gray-400 mb-3">
+            Sources & References
+          </h2>
+          <SourcesList />
+        </section>
+
       </main>
 
       <footer className="border-t border-gray-800 px-6 py-4 text-xs text-gray-600 max-w-7xl mx-auto">
         All models are estimates. TDP from official specs. Thermal sizing via Stefan-Boltzmann law.
-        Shielding via NASA SP-8013 Al-equivalent depths. Launch costs approximate 2025 market rates.
+        Shielding via NASA SP-8013 Al-equivalent depths. Launch costs approximate market rates 2025–2026.
+        Not financial advice.
       </footer>
     </div>
   );

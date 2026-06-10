@@ -25,6 +25,7 @@ export interface StructureResult {
   shield_al_thickness_mm: number; // aluminum wall thickness
   shield_mass_kg: number;
   shield_surface_area_m2: number;
+  shield_cost_usd: number; // fabrication + machining cost
 
   // Combined structure
   total_dry_mass_estimate_kg: number;
@@ -33,6 +34,11 @@ export interface StructureResult {
 
 // Al density kg/m³
 const AL_DENSITY = 2700;
+
+// Shielding cost: aerospace-grade aluminum sheet + machining + integration
+// ~$500/kg at small batch. At mass production (100,000+ kg) could fall to $50–100/kg.
+// Using $300/kg as mid-range space-grade Al enclosure cost.
+const SHIELD_COST_USD_PER_KG = 300;
 
 // SEU shielding presets g/cm² → mm Al
 // g/cm² * 10 / density(g/cm³) = mm
@@ -93,6 +99,8 @@ export function calcStructure(
   const total_dry_mass_estimate_kg =
     shield_mass_kg + (chip_volume_m3 * 1000 * 0.1); // rough structural
 
+  const shield_cost_usd = shield_mass_kg * SHIELD_COST_USD_PER_KG;
+
   return {
     chip_volume_m3,
     chip_footprint_m2,
@@ -103,6 +111,7 @@ export function calcStructure(
     shield_al_thickness_mm: shield_thickness_mm,
     shield_mass_kg,
     shield_surface_area_m2,
+    shield_cost_usd,
     total_dry_mass_estimate_kg,
     bounding_box_m: [bounding_w, bounding_h, bounding_d],
   };
